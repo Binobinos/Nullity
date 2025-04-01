@@ -1,22 +1,20 @@
+import math
 from math import exp
 from random import gauss
 
 
-def relu(x: float | int, threshold: float | int = 0.0, types: str = "norm"):
-    return (x if x > threshold else 0) if types == "norm" else (1.0 if x > 0 else 0.0)
+def relu(x: float | int, threshold: float | int = 0.0, types: str = "norm"): return (
+    x if x > threshold else 0) if types == "norm" else (1.0 if x > 0 else 0.0)
 
 
-def sigmoid(x: float | int, types: str = "norm"):
-    return (1 / (1 + exp(-x))) if types == "norm" else (x * (1.0 - x))
+def sigmoid(x: float | int, types: str = "norm"): return (1 / (1 + exp(-x))) if types == "norm" else (x * (1.0 - x))
 
 
-def mse(predicted: list, target: list) -> float:
-    return sum((p - t) ** 2 for p, t in zip(predicted, target)) / len(predicted)
-
+def mse(predicted: list, target: list) -> float: return sum((p - t) ** 2 for p, t in zip(predicted, target)) / len(
+    predicted)
 
 class Layer:
     __slots__ = ['neurons', 'act_func']
-
     def __init__(self, *, neurons, func): self.neurons, self.act_func = list(0 for _ in range(neurons)), func
 
 
@@ -31,7 +29,6 @@ class Neuralnetwork:
 
     def return_weights(self):
         return self.weights
-
     def update_weights(self, inputs, targets, learning_rate=0.01):
         outputs = self.neuron(inputs)
         errors = [t - o for t, o in zip(targets, outputs[-1])]
@@ -40,14 +37,14 @@ class Neuralnetwork:
             for j in range(len(self.weights[i])):
                 for k in range(len(self.weights[i][j])):
                     self.weights[i][j][k] += learning_rate * errors[k] * outputs[i][j]
-
     def calculating_weights(self):
         self.weights, self.biases = [], []
         for i in range(len(self.layers) - 1):
-            self.weights.append([[gauss(0, 1) for _ in range(len(self.layers[i + 1].neurons))] for _ in
+            self.weights.append([[gauss(0, math.sqrt(
+                2.0 / (len(self.layers[i].neurons) + len(self.layers[i + 1].neurons)))) for _ in
+                                  range(len(self.layers[i + 1].neurons))] for _ in
                                  range(len(self.layers[i].neurons))])
-            self.biases.append([0.01 for _ in range(len(self.layers[i + 1].neurons))])
-
+            self.biases.append([0 for _ in range(len(self.layers[i + 1].neurons))])
     def neuron(self, input_vector):
         outputs = [input_vector]
         for l_id in range(len(self.layers) - 1):
