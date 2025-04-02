@@ -7,8 +7,10 @@ from Nullity.NullityNetworkMini import *
 
 
 class Game:
+    __slots__ = ["color", "screen", "clock", "board_size", "grid_size", "board_start", "WIDTH", "HEIGHT", "max_y",
+                 "max_x", "walls", "radius", "arh", "font", "apple", "snake"]
+
     def __init__(self, arh, radius=1):
-        self.epochs = 1
         pygame.init()
         pygame.display.set_caption("Змейка AI")
         self.color = {"BLACK": (0, 0, 0),
@@ -29,6 +31,9 @@ class Game:
         self.radius = radius
         self.arh = arh
         self.font = pygame.font.SysFont("Minecraft Title Cyrillic", 52)
+        self.apple = Apple(self)
+        self.snake = Snake(self, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), self.radius,
+                           self.arh)
 
     def paint_grid(self, x: int, y: int, color: tuple) -> None:
         pygame.draw.rect(self.screen, color, (
@@ -47,7 +52,7 @@ class Game:
 
     def return_board(self, snake, start, end):
         board = []
-        ds = {"змея": 1, "пустота": 0, "яблоко": 2, "стена": 3}
+        ds = {"змея": 10, "пустота": 0, "яблоко": 20, "стена": 30}
         for y in range(start[1], end[1] + 1):
             for x in range(start[0], end[0] + 1):
                 f = False
@@ -155,22 +160,19 @@ class Game:
 
     def text_rendering(self):
         text_1 = self.font.render(f"{round(self.clock.get_fps(), 2)} FPS", True, self.snake.color)
-        text_2 = self.font.render(f"Счёт: {self.snake.score}",
+        text_2 = self.font.render(f"Счёт: {round(self.snake.score)}",
                                   True,
                                   (255, 255, 255))
         text_3 = self.font.render(f"Длина: {self.snake.length}",
                                   True,
                                   (255, 255, 255))
-        text_4 = self.font.render(f"поколение: {self.epochs}", True, (255, 255, 255))
+        text_4 = self.font.render(f"поколение: {self.snake.epochs}", True, (255, 255, 255))
         self.screen.blit(text_1, (50, 50))
         self.screen.blit(text_2, (1100, 50))
         self.screen.blit(text_3, (1350, 50))
         self.screen.blit(text_4, (1550, 50))
 
-    def update_AI(self):
-        self.apple = Apple(self)
-        self.snake = Snake(self, (random.randint(0, 255), random.randint(0, 255), random.randint(0, 255)), self.radius,
-                           self.arh)
+    def update_ai(self):
         running = True
         while running:
             self.screen.fill(self.color["BLACK"])
@@ -195,6 +197,8 @@ class Game:
 
 
 class Snake:
+    __slots__ = ["parents", "x", "y", "length", "__direction", "coords", "life", "score", "color", "directions",
+                 "direction", "radius", "epochs", "network"]
     def __init__(self, parents, color, radius, arh):
         self.parents: Game = parents
         self.x = random.randint(0, self.parents.max_x)
@@ -242,18 +246,16 @@ class Snake:
         self.x = random.randint(0, self.parents.max_x)
         self.y = random.randint(0, self.parents.max_y)
         self.length = 3
-        self.__direction = 0
+        self.__direction = random.choice([0, 1, 2, 3])
         self.coords = [(self.x - 1 * i, self.y - 0 * i) for i in range(self.length)]
         self.life = True
-        self.score = 0
         self.directions = {"up": 3,
                            "down": 2,
                            "right": 0,
                            "left": 1}
-        self.direction = self.directions[random.choice(self.directions.keys())]
-        self.last_directions = 0
-        self.last_directions_count = 0
         self.epochs += 1
+        self.network.calculating_weights()
+        self.parents.apple.generate_coords(self)
 
 
     def move(self):
@@ -269,9 +271,11 @@ class Snake:
             elif self.__direction == 3:
                 self.y -= 1
             self.score -= 0.01
-            if self.check(self.x, self.y) or not self.checking_collision() :
+            if self.check(self.x, self.y) or not self.checking_collision():
                 self.life = False
+                self.score -= 10
                 self.rendering()
+                self.alive()
                 return
             self.coords.insert(0, (self.x, self.y))
         try:
@@ -281,6 +285,8 @@ class Snake:
 
 
 class Apple:
+    __slots__ = ["parents", "x", "y", "count"]
+
     def __init__(self, parents):
         self.parents: Game = parents
         self.x = random.randint(0, self.parents.max_x - 1)
@@ -291,20 +297,18 @@ class Apple:
         self.parents.paint_grid(self.x, self.y, self.parents.color["RED"])
 
     def generate_coords(self, parent):
-        while (self.x, self.y) in parent.coords or any(
-                (self.x, self.y) == (s.x, s.y) for s in parent.parents.snakes if s.life):
+        while (self.x, self.y) in parent.coords:
             self.x = random.randint(0, self.parents.max_x - 1)
             self.y = random.randint(0, self.parents.max_y - 1)
 
     def collision(self, parent):
-        if parent.x == self.x and parent.y == self.y:
+        if (parent.x, parent.y) == (self.x, self.y):
             parent.length += 1
-            parent.score += 20
+            parent.score += 10
             parent.append()
             self.generate_coords(parent)
-            self.rendering()
 
 
 if __name__ == "__main__":
     game = Game([8, 7, 6, 5], 3)  # 10 змеек
-    game.update_AI()
+    game.update_ai()
