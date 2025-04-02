@@ -3,7 +3,7 @@ from typing import Tuple
 
 import pygame
 
-from NullityNetworkMini import *
+from Nullity.NullityNetworkMini import *
 
 
 class Game:
