@@ -69,3 +69,4 @@ class Neuralnetwork:
                 current_layer_output.append(activated)
             outputs.append(current_layer_output)
         return outputs
+

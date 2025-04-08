@@ -7,8 +7,14 @@ A tiny Autograd engine (with a bite! :)). Implements backpropagation (reverse-mo
 
 ### Installation
 
+
 ```bash
-pip install micrograd
+git clone https://github.com/Binobinos/Nullity.git
+```
+Install the requirements
+
+```bash
+pip install -r requirements.txt
 ```
 
 ### Example usage
@@ -16,24 +22,26 @@ pip install micrograd
 Below is a slightly contrived example showing a number of possible supported operations:
 
 ```python
-from micrograd.engine import Value
+from Nullity.NullityNetworkMini import Neuralnetwork, mse
 
-a = Value(-4.0)
-b = Value(2.0)
-c = a + b
-d = a * b + b**3
-c += c + 1
-c += 1 + c + (-a)
-d += d * 2 + (b + a).relu()
-d += 3 * d + (b - a).relu()
-e = c - d
-f = e**2
-g = f / 2.0
-g += 10.0 / f
-print(f'{g.data:.4f}') # prints 24.7041, the outcome of this forward pass
-g.backward()
-print(f'{a.grad:.4f}') # prints 138.8338, i.e. the numerical value of dg/da
-print(f'{b.grad:.4f}') # prints 645.5773, i.e. the numerical value of dg/db
+# Инициализация
+network = Neuralnetwork()
+# Добавление входного слоя
+network.add_layer(2, "RELU")
+# Добавление скрытого слоя
+network.add_layer(3, "RELU")
+# Добавление выходного слоя
+network.add_layer(2, "SIGMOID")
+# Инициализация весов
+network.calculating_weights()
+
+input_vector = [1, 2]
+output_vector = [2, 1]
+# прямой проход
+result = network.neuron(input_vector)
+
+# Ошибка 
+error = mse(result[-1], output_vector)
 ```
 
 ### Training a neural net
@@ -58,11 +66,6 @@ dot = draw_dot(y)
 
 ### Running tests
 
-To run the unit tests you will have to install [PyTorch](https://pytorch.org/), which the tests use as a reference for verifying the correctness of the calculated gradients. Then simply:
-
-```bash
-python -m pytest
-```
 
 ### License
 

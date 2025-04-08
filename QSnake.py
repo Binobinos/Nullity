@@ -22,11 +22,10 @@ class Game:
         self.screen = pygame.display.set_mode((1920, 1080), pygame.FULLSCREEN)
         self.clock = pygame.time.Clock()
         self.board_size = (20, 20)
-        self.grid_size = (20, 20)
         self.board_start = (1000, 300)
-        self.WIDTH, self.HEIGHT = self.board_size[0] * self.grid_size[0], self.board_size[1] * self.grid_size[1]
-        self.max_y = self.HEIGHT // self.grid_size[0]
-        self.max_x = self.WIDTH // self.grid_size[1]
+        self.WIDTH, self.HEIGHT = self.board_size[0] ** 2, self.board_size[1] ** 2
+        self.max_y = self.HEIGHT // self.board_size[0]
+        self.max_x = self.WIDTH // self.board_size[1]
         self.walls = True
         self.radius = radius
         self.arh = arh
@@ -37,14 +36,15 @@ class Game:
 
     def paint_grid(self, x: int, y: int, color: tuple) -> None:
         pygame.draw.rect(self.screen, color, (
-            (x + self.board_start[0] / self.board_size[0]) * self.grid_size[0],
-            (y + self.board_start[1] / self.board_size[1]) * self.grid_size[1], self.grid_size[0], self.grid_size[1]))
+            (x + self.board_start[0] / self.board_size[0]) * self.board_size[0],
+            (y + self.board_start[1] / self.board_size[1]) * self.board_size[1], self.board_size[0],
+            self.board_size[1]))
 
     def draw_board(self, color: tuple):
         start_x = self.board_start[0]
         start_y = self.board_start[1]
-        end_x = self.board_start[0] + self.board_size[0] * self.grid_size[0]
-        end_y = self.board_start[1] + self.board_size[1] * self.grid_size[1]
+        end_x = self.board_start[0] + self.board_size[0] ** 2
+        end_y = self.board_start[1] + self.board_size[1] ** 2
         pygame.draw.line(self.screen, color, (start_x, start_y), (end_x, start_y), 2)
         pygame.draw.line(self.screen, color, (start_x, start_y), (start_x, end_y), 2)
         pygame.draw.line(self.screen, color, (start_x, end_y), (end_x, end_y), 2)
@@ -71,9 +71,10 @@ class Game:
                     break
                 if f:
                     continue
-                if (x, y) in list((i, 0) for i in range(self.max_x)) or (x, y) in list(
-                        (i, self.max_y) for i in range(self.max_x)) or (x, y) in list(
-                    (0, i) for i in range(self.max_x)) or (x, y) in list((self.max_x, i) for i in range(self.max_x)):
+                if ((x, y) in list((i, 0) for i in range(self.max_x)) or (x, y) in list(
+                        (i, self.max_y) for i in range(self.max_x)) or (x, y) in
+                        list((0, i) for i in range(self.max_x)) or (x, y) in
+                        list((self.max_x, i) for i in range(self.max_x))):
                     board.append(ds["стена"] / 50)
                 else:
                     board.append(ds["пустота"] / 50)
@@ -198,30 +199,30 @@ class Game:
 
 class Snake:
     __slots__ = ["parents", "x", "y", "length", "__direction", "coords", "life", "score", "color", "directions",
-                 "direction", "radius", "epochs", "network"]
+                 "direction", "radius", "epochs", "network", "start_score", "memory"]
+
     def __init__(self, parents, color, radius, arh):
         self.parents: Game = parents
         self.x = random.randint(0, self.parents.max_x)
         self.y = random.randint(0, self.parents.max_y)
+        self.epochs = 1
         self.length = 3
+        self.start_score = 30
+        self.score = self.start_score
         self.__direction = 0
-        self.coords = [(self.x - 1 * i, self.y - 0 * i) for i in range(self.length)]
         self.life = True
-        self.score = 0
         self.color = color
-        self.directions = {"up": 3,
-                           "down": 2,
-                           "right": 0,
-                           "left": 1}
+        self.directions = {"up": 3, "down": 2, "right": 0, "left": 1}
+        self.coords = [(self.x - 1 * i, self.y - 0 * i) for i in range(self.length)]
         self.direction = random.choice(list(self.directions.values()))
         self.radius = radius
-        self.epochs = 1
         self.network = Neuralnetwork()
         self.network.add_layer(((self.radius * 2) + 1) ** 2 + 2, "SIGMOID")
         for i in arh:
             self.network.add_layer(i, "RELU")
         self.network.add_layer(4, "SIGMOID")
         self.network.calculating_weights()
+        self.memory = {}
 
     def append(self):
         self.coords.append(self.coords[-1])
@@ -239,7 +240,8 @@ class Snake:
         return (x, y) in self.coords
 
     def checking_collision(self):
-        self.life = False if self.x >= self.parents.max_x or self.x < 0 or self.y >= self.parents.max_y or self.y < 0 else self.life
+        self.life = False if (self.x >= self.parents.max_x or self.x < 0 or self.y >= self.parents.max_y
+                              or self.y < 0) else self.life
         return self.life
 
     def alive(self):
@@ -249,19 +251,14 @@ class Snake:
         self.__direction = random.choice([0, 1, 2, 3])
         self.coords = [(self.x - 1 * i, self.y - 0 * i) for i in range(self.length)]
         self.life = True
-        self.directions = {"up": 3,
-                           "down": 2,
-                           "right": 0,
-                           "left": 1}
         self.epochs += 1
-        self.network.calculating_weights()
-        self.parents.apple.generate_coords(self)
-
+        self.score = self.start_score
+        self.parents.apple.generate_cords(self)
+        # self.network.calculating_weights()
 
     def move(self):
         if self.life:
-            if len(self.coords) == self.parents.board_size[0] ** 2:
-                return
+
             if self.__direction == 0:
                 self.x += 1
             elif self.__direction == 1:
@@ -271,7 +268,7 @@ class Snake:
             elif self.__direction == 3:
                 self.y -= 1
             self.score -= 0.01
-            if self.check(self.x, self.y) or not self.checking_collision():
+            if self.check(self.x, self.y) or not self.checking_collision() or self.score <= 0:
                 self.life = False
                 self.score -= 10
                 self.rendering()
@@ -285,30 +282,28 @@ class Snake:
 
 
 class Apple:
-    __slots__ = ["parents", "x", "y", "count"]
+    __slots__ = ["parents", "x", "y"]
 
     def __init__(self, parents):
         self.parents: Game = parents
         self.x = random.randint(0, self.parents.max_x - 1)
         self.y = random.randint(0, self.parents.max_y - 1)
-        self.count = 0
 
     def rendering(self):
         self.parents.paint_grid(self.x, self.y, self.parents.color["RED"])
 
-    def generate_coords(self, parent):
+    def generate_cords(self, parent):
         while (self.x, self.y) in parent.coords:
-            self.x = random.randint(0, self.parents.max_x - 1)
-            self.y = random.randint(0, self.parents.max_y - 1)
+            self.x, self.y = random.randint(0, self.parents.max_x - 1), random.randint(0, self.parents.max_y - 1)
 
     def collision(self, parent):
-        if (parent.x, parent.y) == (self.x, self.y):
+        if (self.x, self.y) in parent.coords:
             parent.length += 1
             parent.score += 10
             parent.append()
-            self.generate_coords(parent)
+            self.generate_cords(parent)
 
 
 if __name__ == "__main__":
-    game = Game([8, 7, 6, 5], 3)  # 10 змеек
+    game = Game([16, 16], 3)
     game.update_ai()
